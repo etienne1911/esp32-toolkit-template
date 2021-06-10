@@ -1,2 +1,10 @@
-# esp32-toolkit-template
-Codebase for esp32 projects
+# ESP32 Toolkit Template
+
+Codebase for esp32 projects containing common features.
+
+## Embedded Features
+- Wifi Network: AP + STA
+- Internal Filesystem: SPIFFS
+- Webservices: Webserver, Websockets 
+- OTA updates
+- Power management: sleep/wake cycle
