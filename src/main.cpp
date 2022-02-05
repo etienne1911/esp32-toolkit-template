@@ -15,7 +15,7 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <LITTLEFS.h>
+#include <LittleFS.h>
 #include <AsyncElegantOTA.h>
 #include <WebSocket.h>
 
@@ -83,7 +83,7 @@ void listDir(fs::FS &fs, const char *dirname, uint8_t levels)
  **/
 void initFileSys()
 {
-  if (!LITTLEFS.begin(true))
+  if (!LittleFS.begin(true))
   {
     Serial.println("error while mounting filesystem");
   }
@@ -102,7 +102,7 @@ void initFileSys()
   //   Serial.write(file.read());
   // }
   // file.close();
-  listDir(LITTLEFS, "/", 0);
+  listDir(LittleFS, "/", 0);
 }
 
 /** 
@@ -144,10 +144,10 @@ void initServerRoutes()
 {
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(LITTLEFS, "/index.html", "text/html", false);
+    request->send(LittleFS, "/index.html", "text/html", false);
   });
 
-  server.serveStatic("/", LITTLEFS, "/");
+  server.serveStatic("/", LittleFS, "/");
 }
 
 /** 
