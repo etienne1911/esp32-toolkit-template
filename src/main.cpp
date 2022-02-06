@@ -18,12 +18,13 @@
 #include <LittleFS.h>
 #include <AsyncElegantOTA.h>
 #include <WebSocket.h>
+#include "../DontCommitMe.h"  // PUT Wifi configuration here
 
 const char *hotspotSSID = "******";
 const char *hotspotPWD = "******";
 
-const char *wifiSSID = "Airbox7897";
-const char *wifiPWD = "mdp26567832";
+const char *wifiSSID = customSSID;
+const char *wifiPWD = customPWD;
 
 // using namespace std;
 
@@ -87,21 +88,20 @@ void initFileSys()
   {
     Serial.println("error while mounting filesystem");
   }
-  Serial.println("mounted successfully");
+  Serial.println("mounted successfully!");
 
-  // File file = LITTLEFS.open("/index.html", "r");
-  // if (!file)
-  // {
-  //   Serial.println("Failed to open file for reading");
-  //   return;
-  // }
+  File file = LittleFS.open("/test.txt", "r"); 
+  if(!file){
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+  
+  Serial.println("File Content:");
+  while(file.available()){
+    Serial.write(file.read());
+  }
+  file.close();
 
-  // Serial.println("File Content:");
-  // while (file.available())
-  // {
-  //   Serial.write(file.read());
-  // }
-  // file.close();
   listDir(LittleFS, "/", 0);
 }
 
