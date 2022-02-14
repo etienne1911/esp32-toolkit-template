@@ -1,69 +1,73 @@
 # ESP32 Toolkit Template
 
-Aiming to be used as a base for new projects or sandbox...
+Embedd most common features for the ESP32 boards to quick start new projects.
 
-## Embedded Features
-- wifi network: AP + STA
+## Overview
+- wifi: support AP + STA modes
 - internal filesystem: LittleFS
 - web services: Webserver, Websockets 
 - OTA updates
-- power management: sleep/wake cycle
+- devices support: oled screen, current sensor, digpot 
+- power management: TODO sleep/wake cycle
 
-## Prereq
+## Usage
 
 VSCode + PlatformIO extension are required.
 
 In platform.ini `board` and `monitor_speed`  can be customized.
 
- ## Configuration
+ ## Features
 
-### Network settings
+### Network
 
-Both AP (access point) and STA (wifi client) modes are supported and can work in the same time.
+Both AP (access point) and STA (wifi client) modes are supported and can work at the same time.
 
-Before building and uploading, configure wifi settings (SSID + password) for each modes.
+Wifi settings (SSID + password) set in external file
 
 Once the board boots, the registered IP address will be displayed in the serial console.
 
 ### OTA updates
 
-This feature permits to update device over-the-air without resorting to serial transfer.
+Over-the-air device firmware updater access at: `<deviceIP>/update` 
 
-Note that you must first use classic method using serial communications before you can flash using OTA.
+without resorting to serial transfer.
 
-Also make sure wifi settings are correctly setup in previous step to allow device to connect to the WLAN network.
+Note: firmware must be uploaded using serial communications the first time before OTA flash is available.
 
-After building a new firmware, a `firmware.bin` file will be output in `.pio/build/<board-model>/firmware.bin` folder of the project.
+Note2: wifi settings must be correctly setup to allow device connection to the WLAN network.
 
-While device is booted and connected to your WLAN network, browse the following url `<deviceIP>/update` which should display an updater page.
-Select the firmware file that was output before to upload it to your board.
-Now the device should be updated with the latest version of your code
+On each new firmware build, upload `firmware.bin` from `.pio/build/<board-model>/firmware.bin` project's folder.
 
-Using the same method, you can also update device's internal storage(see Filesystem step).
-Simply choose `filesystem` option instead of `firmware` on the updater page, and select the filesystem image which will be available in `.pio/build/<board-model>/SPIFFS.bin` after building in the next step.
+Same method, for updating device's internal storage (see Filesystem step) by choosing `filesystem` option (instead of `firmware`) in OTA updater
+and selecting filesystem image built at next step.
 
 ### Filesystem
 
-The board is able to handle a small filesystem (LittleFS) to store files.
-This will be particularly handy when serving web pages through webserver (described at next step).
-To use it you'll need to put the files in the `data` folder of the project and build a filesystem image, 
-by running `<boardname> -> Platform -> Build Filesystem Image` task.
-This will output a `SPIFFS.bin` image in the `.pio/build/<board-model>/`, that you can then upload the the board either through serial or OTA updater.
+Support for LittleFS filesystem.
+Files to include in filestystem must be put in project's `data` folder.
+Build a new filesystem image, by running `<boardname> -> Platform -> Build Filesystem Image` task.
+This will output a `SPIFFS.bin` image in the `.pio/build/<board-model>/`, that can then be uploaded the the board either through serial or OTA updater.
 
 ### Web Server
 
-To host static web pages, include the files you want to serve in the filesystem image from previous step.
-Upload the filesystem image to your device, and access each page by browsing file's url: `<deviceIp>/filename` 
+Static web pages server, by include web files in the filesystem image described at previous step.
+Page access through following url: `<deviceIP>/filename` 
 
 ### Web Sockets
 
-Web socket protocol is also available on the board. 
-It is much lighter and faster than common http requests and particularly useful in remote control application where real-time connection are needed.
+Web socket protocol to provide much lighter and faster communication with device than common http requests 
+( particularly useful for realtime remote control applications ).
+
+### Loggin
+
+coming soon
+
+### Devices support
+- SSD1306 oled display
+- INA219 current sensor
+- X9C104 digital potentiometer
 
 ### Power Management
 
-Coming soon.
+TODO
 
-## Credits
-
-This template was mainly inspired from this [tutorial](https://randomnerdtutorials.com/esp32-ota-over-the-air-arduino/).

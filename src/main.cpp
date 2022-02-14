@@ -9,16 +9,25 @@
  * - Power management: sleep/wake cycle
 **/
 
+#include "../Dont-Commit-Me.h" // PUT Wifi configuration here
 #include <iostream>
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 #include <AsyncElegantOTA.h>
+#include <WebSerial.h>
+// #include <logging.hpp>
+// #include <fs-appender.hpp>
+// #include <ets-appender.hpp>
+// #include <udp-appender.hpp>
 #include <WebSocket.h>
-#include "../DontCommitMe.h"  // PUT Wifi configuration here
+#include <fs-utils.h>
+#include <server-routes.h>
+#include <web-controls.h>
+#include <display.h>
+#include <sensors.h>
 
 const char *hotspotSSID = "******";
 const char *hotspotPWD = "******";
@@ -27,57 +36,30 @@ const char *wifiSSID = customSSID;
 const char *wifiPWD = customPWD;
 
 // using namespace std;
+// using namespace esp32m;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-void listDir(fs::FS &fs, const char *dirname, uint8_t levels)
-{
-  Serial.printf("Listing directory: %s\r\n", dirname);
+int LED_PIN = 13;
+int count = 0;
 
-  File root = fs.open(dirname);
-  if (!root)
-  {
-    Serial.println("- failed to open directory");
-    return;
-  }
-  if (!root.isDirectory())
-  {
-    Serial.println(" - not a directory");
-    return;
-  }
-
-  File file = root.openNextFile();
-  while (file)
-  {
-    if (file.isDirectory())
-    {
-      Serial.print("  DIR : ");
-
-      Serial.print(file.name());
-      time_t t = file.getLastWrite();
-      struct tm *tmstruct = localtime(&t);
-      Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n", (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1, tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min, tmstruct->tm_sec);
-
-      if (levels)
-      {
-        listDir(fs, file.name(), levels - 1);
-      }
-    }
-    else
-    {
-      Serial.print("  FILE: ");
-      Serial.print(file.name());
-      Serial.print("  SIZE: ");
-
-      Serial.print(file.size());
-      time_t t = file.getLastWrite();
-      struct tm *tmstruct = localtime(&t);
-      Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n", (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1, tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min, tmstruct->tm_sec);
-    }
-    file = root.openNextFile();
-  }
-}
+/**
+ *  Loggin
+ */
+// void initLoggin(){
+//   // SPIFFS.begin(true);
+//     // send log messages to standard output (Serial)
+//   Logging::addAppender(&ETSAppender::instance());
+//   // send log messages to file "mylog" on the SPIFFS
+//   Logging::addAppender(new FSAppender(LittleFS, "mylog"));
+//   // send log messages to 192.168.1.1:1234 in the form of UDP packets
+//   // Logging::addAppender(new UDPAppender("192.168.1.1", 1234));
+//   // redirect standard output to appenders
+//   Logging::hookUartLogger();
+//   // now use log_X macros to forward log messages to the registered appenders
+//   log_i("hello world!");
+// }
 
 /** 
  * FileSystem 
@@ -90,14 +72,16 @@ void initFileSys()
   }
   Serial.println("mounted successfully!");
 
-  File file = LittleFS.open("/test.txt", "r"); 
-  if(!file){
+  File file = LittleFS.open("/test.txt", "r");
+  if (!file)
+  {
     Serial.println("Failed to open file for reading");
     return;
   }
-  
+
   Serial.println("File Content:");
-  while(file.available()){
+  while (file.available())
+  {
     Serial.write(file.read());
   }
   file.close();
@@ -137,20 +121,6 @@ void WifiSTA()
 }
 
 /** 
- * WebServer
- **/
-
-void initServerRoutes()
-{
-  // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(LittleFS, "/index.html", "text/html", false);
-  });
-
-  server.serveStatic("/", LittleFS, "/");
-}
-
-/** 
  * WebSockets
  **/
 
@@ -162,6 +132,7 @@ void initWebSocket()
   // bind websocket to webserver
   server.addHandler(&ws);
 }
+
 /**
  * SETUP
  */
@@ -174,6 +145,10 @@ void setup()
   initFileSys();
   Serial.println("");
 
+  // Serial.println("** Loggin **");
+  // initLoggin();
+  // Serial.println("switch logs to registered appenders");
+
   Serial.println("** Network **");
   // WifiAP();  // Access Point
   WifiSTA(); // Wifi Client
@@ -181,7 +156,7 @@ void setup()
 
   Serial.println("** Webservices **");
   initWebSocket();
-  initServerRoutes();
+  initServerRoutes(&server);
   Serial.println("OK");
   Serial.println("");
 
@@ -190,8 +165,35 @@ void setup()
   Serial.println("OK");
   Serial.println("");
 
+  Serial.println("** Web Serial Monitor & Controls **");
+  WebSerial.begin(&server);
+  WebSerial.msgCallback(recvMsg);
+  // WebSerial.msgCallback(recvMsg);
+  Serial.println("OK");
+  Serial.println("");
+
   // Start server
   server.begin();
+
+  // Serial.println("** OLED Screen **");
+  // Display display(14, 15, 0x3C);
+  // display.testDisplay();
+  resetPot();
+  ina219Setup(14, 15);
+  pinMode(LED_PIN, OUTPUT); // Set GPIO22 as digital output pin
+  WebSerial.println("Done Setup!");
+}
+
+void blinkLED()
+{
+  digitalWrite(LED_PIN, HIGH); // Set GPIO22 active high
+  // WebSerial.println("LED ON");
+  delay(1000);
+  ina219DisplayValues();
+  digitalWrite(LED_PIN, LOW); // Set GPIO22 active low
+  // WebSerial.println("LED OFF");
+  delay(1000); // delay of one second
+  ina219DisplayValues();
 }
 /**
  * MAIN LOOP
@@ -200,4 +202,13 @@ void loop()
 {
   AsyncElegantOTA.loop();
   ws.cleanupClients();
+  // blinkLED();
+  // digiPotLoop();
+  count = count < 200000 ? count + 1 : 0;
+  // update call
+  if (count == 0)
+  {
+    cycle();
+    ina219DisplayValues();
+  }
 }
